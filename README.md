@@ -80,7 +80,13 @@ Connect the repository in Cloudflare Pages, choose the Vite framework preset, an
 - Node version: `24` (set `NODE_VERSION` if needed)
 - Environment variables: `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` for production and any preview environments.
 
-`public/_redirects` is copied to `dist/_redirects` and rewrites routes to `index.html` for direct visits and refreshes. Add the deployed origin and authentication redirect URLs to Supabase. For previews, explicitly allow their callback URLs if you intend to test auth there. Environment variables are embedded at build time; redeploy after changing them.
+Pages uses its built-in SPA fallback when there is no top-level `404.html`. No catch-all `_redirects` rule is needed. Add the deployed origin and authentication redirect URLs to Supabase. For previews, explicitly allow their callback URLs if you intend to test auth there. Environment variables are embedded at build time; redeploy after changing them.
+
+### Cloudflare Workers (Workers Builds)
+
+If the project was created as a Worker, use build command `npm run build` and deploy command `npx wrangler deploy`. The checked-in `wrangler.jsonc` serves `dist` with `assets.not_found_handling: "single-page-application"` so direct visits to profile and dashboard routes load the app. Set the same Vite environment variables in the build environment. Do not restore `/* /index.html 200`: Workers rejects that rule as an infinite redirect loop.
+
+References: [Workers SPA routing](https://developers.cloudflare.com/workers/static-assets/routing/single-page-application/), [Pages default routing](https://developers.cloudflare.com/pages/configuration/serving-pages/).
 
 Reference: [Supabase user profiles and triggers](https://supabase.com/docs/guides/auth/managing-user-data), [password recovery](https://supabase.com/docs/reference/javascript/auth-resetpasswordforemail), [Tailwind’s Vite integration](https://tailwindcss.com/docs/installation/using-vite).
 
