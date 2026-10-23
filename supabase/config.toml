@@ -1,0 +1,4 @@
+# Authentication is verified explicitly with auth.getUser(token) in the handler.
+# This also supports projects using newer signing keys and publishable API keys.
+[functions.delete-account]
+verify_jwt = false
