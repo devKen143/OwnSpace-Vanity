@@ -114,6 +114,14 @@ input {
 .button:hover {
   background: #234532;
 }
+.button-secondary {
+  background: transparent;
+  color: #305b43;
+  border: 1px solid #305b43;
+}
+.button-secondary:hover {
+  background: #edf2e9;
+}
 .button-small {
   padding: 12px 19px;
   font-size: 14px;

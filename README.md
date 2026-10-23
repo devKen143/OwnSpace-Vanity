@@ -78,9 +78,11 @@ Connect the repository in Cloudflare Pages, choose the Vite framework preset, an
 - Build command: `npm run build`
 - Build output directory: `dist`
 - Node version: `24` (set `NODE_VERSION` if needed)
-- Environment variables: `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` for production and any preview environments.
+- Environment variables: `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` for the Vite build, plus `SUPABASE_URL` and `SUPABASE_ANON_KEY` in Cloudflare Pages Functions. The latter must be the anon key, never a service-role key.
 
 Pages uses its built-in SPA fallback when there is no top-level `404.html`. No catch-all `_redirects` rule is needed. Add the deployed origin and authentication redirect URLs to Supabase. For previews, explicitly allow their callback URLs if you intend to test auth there. Environment variables are embedded at build time; redeploy after changing them.
+
+To test the deployed-style metadata function locally, build first and run `npx wrangler pages dev dist`. Set `SUPABASE_URL` and `SUPABASE_ANON_KEY` in the local Pages environment.
 
 ### Cloudflare Workers (Workers Builds)
 

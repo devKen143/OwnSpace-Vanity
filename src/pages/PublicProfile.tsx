@@ -12,7 +12,8 @@ import {
   type ProfileLink,
   type Social,
 } from '../lib/profile';
-export function NotFound() {
+export function NotFound({ username }: { username?: string }) {
+  const claimUrl = username ? `/signup?username=${encodeURIComponent(username)}` : '/signup';
   return (
     <main className="auth-shell">
       <section className="auth-card">
@@ -21,6 +22,9 @@ export function NotFound() {
         <p>This space doesn’t exist or isn’t public.</p>
         <Link className="button" to="/">
           Head home ↗
+        </Link>
+        <Link className="button button-secondary" to={claimUrl}>
+          Claim your username ↗
         </Link>
       </section>
     </main>
@@ -138,7 +142,7 @@ function ProfileContent({ username }: { username: string }) {
         <Link to="/">Back home</Link>
       </main>
     );
-  if (state === 'missing') return <NotFound />;
+  if (state === 'missing') return <NotFound username={username} />;
   if (state === 'error')
     return (
       <main className="status">
