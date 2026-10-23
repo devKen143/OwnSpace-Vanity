@@ -22,6 +22,11 @@ export function AuthPage({ mode }: { mode: 'login' | 'signup' | 'reset' }) {
   const invalidUsername = usernameError(username);
   const updatingPassword = mode === 'reset' && !!session;
   useEffect(() => {
+    if (mode === 'login' && params.get('confirmed') === '1') {
+      setMessage('Email confirmed, log in to continue.');
+    }
+  }, [mode, params]);
+  useEffect(() => {
     if (mode !== 'signup' || invalidUsername || !supabase) return;
     let active = true;
     setAvailability({ value: username, state: 'checking' });
@@ -61,14 +66,24 @@ export function AuthPage({ mode }: { mode: 'login' | 'signup' | 'reset' }) {
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
-          options: { data: { username }, emailRedirectTo: `${window.location.origin}/account` },
+          options: { data: { username }, emailRedirectTo: `${window.location.origin}/login?confirmed=1` },
         });
         if (error) throw error;
+        try {
+          window.localStorage.setItem('ownspace:returning', '1');
+        } catch {
+          // Storage is optional.
+        }
         if (data.session) navigate('/account');
         else setMessage('Check your email to confirm your account, then sign in.');
       } else if (mode === 'login') {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        try {
+          window.localStorage.setItem('ownspace:returning', '1');
+        } catch {
+          // Storage is optional.
+        }
         navigate('/account');
       } else if (updatingPassword) {
         const { error } = await supabase.auth.updateUser({ password });
@@ -83,7 +98,13 @@ export function AuthPage({ mode }: { mode: 'login' | 'signup' | 'reset' }) {
         setMessage('If an account exists for that email, you’ll receive a password reset link.');
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
+      setError(
+        mode === 'login' || mode === 'signup'
+          ? 'We couldn’t complete that request. Check your details and try again.'
+          : err instanceof Error
+            ? err.message
+            : 'Something went wrong. Please try again.',
+      );
     } finally {
       setBusy(false);
     }
@@ -213,10 +234,12 @@ export function AuthPage({ mode }: { mode: 'login' | 'signup' | 'reset' }) {
           {mode === 'login' ? (
             <>
               <Link to="/reset-password">Forgot password?</Link>
-              <Link to="/signup">Create an account</Link>
+              <Link to="/signup">New here? Claim your space</Link>
             </>
           ) : (
-            <Link to="/login">Back to sign in</Link>
+            <Link to="/login">
+              {mode === 'signup' ? 'Already have an account? Log in' : 'Back to sign in'}
+            </Link>
           )}
           {session && <Link to="/account">Your account</Link>}
         </div>

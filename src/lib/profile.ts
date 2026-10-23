@@ -41,7 +41,12 @@ export function referrerHost(referrer: string) {
   }
 }
 export interface Profile {
-  theme?: { bg?: Partial<BackgroundTheme>; [key: string]: unknown };
+  theme?: {
+    bg?: Partial<BackgroundTheme>;
+    splash?: Record<string, unknown>;
+    layoutOptions?: Record<string, unknown>;
+    [key: string]: unknown;
+  };
   id: string;
   username: string;
   display_name: string;
@@ -57,6 +62,7 @@ export interface Profile {
   text_color: string;
   font: string;
   splash_enabled: boolean;
+  splash_text?: string;
   splash_title: string;
   splash_message: string;
   view_count: number;

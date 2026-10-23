@@ -7,6 +7,8 @@ import { BackgroundEditor } from './BackgroundEditor';
 import { backgroundTheme, backgroundFileError } from '../lib/background';
 import { capturePoster, uploadBackground, removeOldBackgrounds } from '../lib/backgroundUpload';
 import type { BackgroundTheme } from '../lib/profile';
+import { normalizeSplash, splashDefaults, splashPresets, type SplashOptions } from '../lib/splash';
+import { getLayoutOptions, layoutDefaults, type LayoutOptions } from '../lib/layout';
 
 const editableKeys = [
   'theme',
@@ -28,6 +30,10 @@ const editableKeys = [
 
 function editable(profile: Profile) {
   return Object.fromEntries(editableKeys.map((key) => [key, profile[key]]));
+}
+
+function getSplash(profile: Profile) {
+  return normalizeSplash(profile.theme?.splash, profile);
 }
 
 function useFilePreview(file: File | null) {
@@ -62,8 +68,12 @@ export function Customize() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [splash, setSplash] = useState<SplashOptions>(() => getSplash(profile));
+  const [layoutOptions, setLayoutOptions] = useState<LayoutOptions>(() => getLayoutOptions(profile));
   const dirty =
     JSON.stringify(editable(draft)) !== JSON.stringify(editable(profile)) ||
+    JSON.stringify(splash) !== JSON.stringify(getSplash(profile)) ||
+    JSON.stringify(layoutOptions) !== JSON.stringify(getLayoutOptions(profile)) ||
     !!avatar ||
     !!background;
 
@@ -94,6 +104,16 @@ export function Customize() {
 
   function change<K extends keyof Profile>(key: K, value: Profile[K]) {
     setDraft((current) => ({ ...current, [key]: value }));
+    setNotice('');
+  }
+
+  function changeSplash<K extends keyof SplashOptions>(key: K, value: SplashOptions[K]) {
+    setSplash((current) => ({ ...current, [key]: value }));
+    setNotice('');
+  }
+
+  function changeLayout<K extends keyof LayoutOptions>(key: K, value: LayoutOptions[K]) {
+    setLayoutOptions((current) => ({ ...current, [key]: value }));
     setNotice('');
   }
 
@@ -194,6 +214,8 @@ export function Customize() {
           : undefined;
       }
       next.theme = { ...next.theme, bg: nextBg };
+      next.theme.splash = splash;
+      next.theme.layoutOptions = layoutOptions;
       next.background_image =
         nextBg.type === 'image' && typeof nextBg.value === 'string' ? nextBg.value : null;
       const { data, error } = await supabase!
@@ -247,6 +269,8 @@ export function Customize() {
     avatar_url: avatarPreview || draft.avatar_url,
     theme: {
       ...draft.theme,
+      splash,
+      layoutOptions,
       bg: {
         ...bg,
         value: backgroundPreview || bg.value,
@@ -359,6 +383,33 @@ export function Customize() {
                   </label>
                 ))}
               </fieldset>
+              {draft.layout === 'split' && (
+                <section className="layout-options">
+                  <h3>Split layout</h3>
+                  <div className="field-pair">
+                    <label>
+                      Side
+                      <select value={layoutOptions.side} onChange={(event) => changeLayout('side', event.target.value as LayoutOptions['side'])}>
+                        <option value="right">Right</option>
+                        <option value="left">Left</option>
+                      </select>
+                    </label>
+                    <label>
+                      Alignment
+                      <select value={layoutOptions.contentAlign} onChange={(event) => changeLayout('contentAlign', event.target.value as LayoutOptions['contentAlign'])}>
+                        <option value="start">Start</option>
+                        <option value="center">Center</option>
+                      </select>
+                    </label>
+                  </div>
+                  <label>Slant angle ({layoutOptions.angle}°)<input type="range" min="0" max="20" value={layoutOptions.angle} onChange={(event) => changeLayout('angle', Number(event.target.value))} /></label>
+                  <label>Panel width ({layoutOptions.panelWidth}%)<input type="range" min="35" max="60" value={layoutOptions.panelWidth} onChange={(event) => changeLayout('panelWidth', Number(event.target.value))} /></label>
+                  <label>Panel opacity ({layoutOptions.panelOpacity}%)<input type="range" min="0" max="100" value={layoutOptions.panelOpacity} onChange={(event) => changeLayout('panelOpacity', Number(event.target.value))} /></label>
+                  <label>Panel blur ({layoutOptions.panelBlur}px)<input type="range" min="0" max="24" value={layoutOptions.panelBlur} onChange={(event) => changeLayout('panelBlur', Number(event.target.value))} /></label>
+                  <label>Panel color<input type="color" value={layoutOptions.panelColor} onChange={(event) => changeLayout('panelColor', event.target.value)} /></label>
+                  <button type="button" className="quiet-button" onClick={() => setLayoutOptions({ ...layoutDefaults })}>Reset to default</button>
+                </section>
+              )}
             </section>
             <section className="dashboard-card form-stack">
               <h2>A warm welcome</h2>
@@ -372,23 +423,188 @@ export function Customize() {
               </label>
               {draft.splash_enabled && (
                 <>
+                  <h3>Splash screen</h3>
+                  <div className="preset-buttons" aria-label="Splash presets">
+                    {Object.keys(splashPresets).map((preset) => (
+                      <button
+                        type="button"
+                        className="quiet-button"
+                        key={preset}
+                        onClick={() => setSplash({ ...splashDefaults, ...splashPresets[preset] })}
+                      >
+                        {preset}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      className="quiet-button"
+                      onClick={() => setSplash({ ...splashDefaults })}
+                    >
+                      Reset to default
+                    </button>
+                  </div>
+                  <fieldset className="layout-picker">
+                    <legend>Splash layout</legend>
+                    {(['plain', 'card'] as const).map((layout) => (
+                      <label key={layout} className={splash.layout === layout ? 'selected' : ''}>
+                        <input
+                          type="radio"
+                          name="splash-layout"
+                          value={layout}
+                          checked={splash.layout === layout}
+                          onChange={() => changeSplash('layout', layout)}
+                        />
+                        <span>{layout === 'plain' ? 'Plain text' : 'Card'}</span>
+                      </label>
+                    ))}
+                  </fieldset>
+                  {splash.layout === 'plain' && (
+                    <>
+                      <label>
+                        Title
+                        <input maxLength={60} value={splash.title} onChange={(event) => changeSplash('title', event.target.value)} />
+                        <small>{splash.title.length}/60 characters</small>
+                      </label>
+                      <label>
+                        Text color
+                        <input type="color" value={splash.textColor} onChange={(event) => changeSplash('textColor', event.target.value)} />
+                      </label>
+                      <label>
+                        Size
+                        <select value={splash.size} onChange={(event) => changeSplash('size', event.target.value as SplashOptions['size'])}>
+                          <option value="s">S</option>
+                          <option value="m">M</option>
+                          <option value="l">L</option>
+                        </select>
+                      </label>
+                      <label>
+                        Animation
+                        <select value={splash.enter} onChange={(event) => changeSplash('enter', event.target.value as SplashOptions['enter'])}>
+                          <option value="fade">Fade</option>
+                          <option value="none">None</option>
+                        </select>
+                      </label>
+                    </>
+                  )}
+                  {splash.layout === 'card' && (
+                    <>
                   <label>
-                    Splash title
-                    <input
-                      maxLength={120}
-                      value={draft.splash_title}
-                      onChange={(event) => change('splash_title', event.target.value)}
-                    />
+                    Title
+                    <input maxLength={60} value={splash.title} onChange={(event) => changeSplash('title', event.target.value)} />
+                    <small>{splash.title.length}/60 characters</small>
                   </label>
                   <label>
                     Splash text
-                    <textarea
-                      rows={3}
-                      maxLength={500}
-                      value={draft.splash_message}
-                      onChange={(event) => change('splash_message', event.target.value)}
-                    />
+                    <textarea rows={2} maxLength={120} value={splash.subtitle} onChange={(event) => changeSplash('subtitle', event.target.value)} />
+                    <small>{splash.subtitle.length}/120 characters</small>
                   </label>
+                  <label>
+                    Button label
+                    <input maxLength={24} value={splash.buttonLabel} onChange={(event) => changeSplash('buttonLabel', event.target.value)} />
+                    <small>{splash.buttonLabel.length}/24 characters</small>
+                  </label>
+                  <div className="field-pair">
+                    <label>
+                      Icon
+                      <select value={splash.icon} onChange={(event) => changeSplash('icon', event.target.value as SplashOptions['icon'])}>
+                        <option value="asterisk">Asterisk</option>
+                        <option value="avatar">Avatar</option>
+                        <option value="emoji">Emoji</option>
+                        <option value="none">None</option>
+                      </select>
+                    </label>
+                    <label>
+                      Emoji
+                      <input value={splash.emoji} onChange={(event) => changeSplash('emoji', event.target.value)} />
+                    </label>
+                  </div>
+                  <div className="field-pair">
+                    <label>
+                      Card style
+                      <select value={splash.cardStyle} onChange={(event) => changeSplash('cardStyle', event.target.value as SplashOptions['cardStyle'])}>
+                        <option value="glass">Glass</option>
+                        <option value="solid">Solid</option>
+                        <option value="outline">Outline</option>
+                        <option value="none">None</option>
+                      </select>
+                    </label>
+                    <label>
+                      Size
+                      <select value={splash.size} onChange={(event) => changeSplash('size', event.target.value as SplashOptions['size'])}>
+                        <option value="compact">Compact</option>
+                        <option value="standard">Standard</option>
+                      </select>
+                    </label>
+                  </div>
+                  <div className="field-pair">
+                    <label>
+                      Card color
+                      <input type="color" value={splash.cardColor} onChange={(event) => changeSplash('cardColor', event.target.value)} />
+                    </label>
+                    <label>
+                      Opacity ({splash.cardOpacity}%)
+                      <input type="range" min="0" max="100" value={splash.cardOpacity} onChange={(event) => changeSplash('cardOpacity', Number(event.target.value))} />
+                    </label>
+                  </div>
+                  <label>
+                    Blur ({splash.blur}px)
+                    <input type="range" min="0" max="24" value={splash.blur} onChange={(event) => changeSplash('blur', Number(event.target.value))} />
+                  </label>
+                  <div className="field-pair">
+                    <label>
+                      Text color
+                      <input type="color" value={splash.textColor} onChange={(event) => changeSplash('textColor', event.target.value)} />
+                    </label>
+                    <label>
+                      Button color
+                      <input type="color" value={splash.buttonColor} onChange={(event) => changeSplash('buttonColor', event.target.value)} />
+                    </label>
+                  </div>
+                  <label>
+                    Button text color
+                    <input type="color" value={splash.buttonTextColor} onChange={(event) => changeSplash('buttonTextColor', event.target.value)} />
+                  </label>
+                  <label className="checkbox-label">
+                    <input type="checkbox" checked={splash.autoContrast} onChange={(event) => changeSplash('autoContrast', event.target.checked)} />
+                    Auto contrast
+                  </label>
+                  <div className="field-pair">
+                    <label>
+                      Align
+                      <select value={splash.align} onChange={(event) => changeSplash('align', event.target.value as SplashOptions['align'])}>
+                        <option value="center">Center</option>
+                        <option value="left">Left</option>
+                      </select>
+                    </label>
+                    <label>
+                      Enter motion
+                      <select value={splash.enter} onChange={(event) => changeSplash('enter', event.target.value as SplashOptions['enter'])}>
+                        <option value="fade">Fade</option>
+                        <option value="scale">Scale</option>
+                        <option value="slide">Slide</option>
+                        <option value="none">None</option>
+                      </select>
+                    </label>
+                  </div>
+                  <label>
+                    Exit motion
+                    <select value={splash.exit} onChange={(event) => changeSplash('exit', event.target.value as SplashOptions['exit'])}>
+                      <option value="fade">Fade</option>
+                      <option value="scale">Scale</option>
+                      <option value="slide">Slide</option>
+                      <option value="none">None</option>
+                    </select>
+                  </label>
+                  <label className="checkbox-label">
+                    <input type="checkbox" checked={splash.clickAnywhere} onChange={(event) => changeSplash('clickAnywhere', event.target.checked)} />
+                    Click anywhere to enter
+                  </label>
+                  <label className="checkbox-label">
+                    <input type="checkbox" checked={splash.showBackHome} onChange={(event) => changeSplash('showBackHome', event.target.checked)} />
+                    Show back home link
+                  </label>
+                    </>
+                  )}
                 </>
               )}
             </section>

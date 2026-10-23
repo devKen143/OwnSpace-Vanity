@@ -1,7 +1,9 @@
 import { ProfileBackground } from '../components/ProfileBackground';
+import { SplashScreen } from '../components/SplashScreen';
 import { useState } from 'react';
 import { profileTheme } from '../lib/theme';
 import { type Profile, type ProfileLink, type Social } from '../lib/profile';
+import { getLayoutOptions, layoutStyle } from '../lib/layout';
 
 export function ProfilePreview({
   profile,
@@ -13,6 +15,7 @@ export function ProfilePreview({
   socials: Social[];
 }) {
   const [showSplash, setShowSplash] = useState(false);
+  const layoutOptions = getLayoutOptions(profile);
   return (
     <aside className="preview-pane">
       <div className="preview-label">
@@ -27,20 +30,14 @@ export function ProfilePreview({
       <div className="preview-window">
         <div
           className={`profile-page ${profile.layout} ${profile.splash_enabled && showSplash ? 'splash' : ''}`}
-          style={profileTheme(profile)}
+          style={{ ...profileTheme(profile), ...(profile.layout === 'split' ? layoutStyle(layoutOptions) : {}) }}
         >
           <ProfileBackground profile={profile} preview />
           {profile.splash_enabled && showSplash ? (
-            <section className="splash-card">
-              <span className="splash-symbol">✳</span>
-              <h1>{profile.splash_title}</h1>
-              <p>{profile.splash_message}</p>
-              <button className="profile-link" onClick={() => setShowSplash(false)}>
-                Enter this space ↗
-              </button>
-            </section>
+            <SplashScreen profile={profile} preview onEnter={() => setShowSplash(false)} />
           ) : (
             <>
+              <div className={profile.layout === 'split' ? 'split-panel' : undefined}>
               <div className="profile-content">
                 <header className="profile-identity">
                   {profile.avatar_url ? (
@@ -53,7 +50,9 @@ export function ProfilePreview({
                   <span className="eyebrow">@{profile.username}</span>
                   <h1>{profile.display_name || profile.username}</h1>
                   <p className="bio">{profile.bio}</p>
-                  <span className="view-count">{profile.view_count.toLocaleString()} views</span>
+                  <span className="view-count">
+                    <span aria-hidden="true">◉</span> {profile.view_count.toLocaleString()} views
+                  </span>
                 </header>
                 <section className="profile-links" aria-label="Preview links">
                   {[...links]
@@ -85,6 +84,7 @@ export function ProfilePreview({
                 </section>
               </div>
               <footer className="profile-footer">✳ Make your OwnSpace</footer>
+              </div>
             </>
           )}
         </div>

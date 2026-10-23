@@ -409,9 +409,7 @@
   gap: 8px;
 }
 .preview-window .split .profile-content {
-  display: grid;
-  grid-template-columns: 0.9fr 1.1fr;
-  gap: 12px;
+  display: block;
 }
 .preview-window .split .profile-identity {
   text-align: left;

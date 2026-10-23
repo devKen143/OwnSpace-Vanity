@@ -1,9 +1,11 @@
 import { ProfileBackground } from '../components/ProfileBackground';
+import { SplashScreen } from '../components/SplashScreen';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useSession } from '../auth';
 import { supabase } from '../lib/supabase';
 import { profileTheme } from '../lib/theme';
+import { getLayoutOptions, layoutStyle } from '../lib/layout';
 import {
   deviceType,
   referrerHost,
@@ -160,27 +162,21 @@ function ProfileContent({ username }: { username: string }) {
       </p>
     );
   const theme = profileTheme(profile);
+  const layoutOptions = getLayoutOptions(profile);
   if (profile.splash_enabled && !entered)
     return (
       <main className="profile-page splash" style={theme}>
         <ProfileBackground profile={profile} />
-        <section className="splash-card">
-          <span className="splash-symbol">✳</span>
-          <h1>{profile.splash_title}</h1>
-          <p>
-            {profile.splash_message ||
-              `Step into ${profile.display_name || profile.username}’s space.`}
-          </p>
-          <button className="profile-link" onClick={() => setEntered(true)}>
-            Enter this space ↗
-          </button>
-          <Link to="/">Back home</Link>
-        </section>
+        <SplashScreen profile={profile} onEnter={() => setEntered(true)} />
       </main>
     );
   return (
-    <main className={`profile-page ${profile.layout}`} style={theme}>
+    <main
+      className={`profile-page ${profile.layout} ${profile.layout === 'split' ? `split-side-${layoutOptions.side} split-align-${layoutOptions.contentAlign}` : ''}`}
+      style={{ ...theme, ...(profile.layout === 'split' ? layoutStyle(layoutOptions) : {}) }}
+    >
       <ProfileBackground profile={profile} />
+      <div className={profile.layout === 'split' ? 'split-panel' : undefined}>
       <div className="profile-content">
         <header className="profile-identity">
           {safeUrl(profile.avatar_url) ? (
@@ -193,7 +189,9 @@ function ProfileContent({ username }: { username: string }) {
           <span className="eyebrow">@{profile.username}</span>
           <h1>{profile.display_name || profile.username}</h1>
           <p className="bio">{profile.bio}</p>
-          <span className="view-count">{profile.view_count.toLocaleString()} views</span>
+          <span className="view-count">
+            <span aria-hidden="true">◉</span> {profile.view_count.toLocaleString()} views
+          </span>
         </header>
         <section className="profile-links" aria-label="Links and social accounts">
           {links.length === 0 && socials.length === 0 && (
@@ -249,6 +247,7 @@ function ProfileContent({ username }: { username: string }) {
       <footer className="profile-footer">
         <Link to="/">✳ Make your OwnSpace</Link>
       </footer>
+      </div>
     </main>
   );
 }

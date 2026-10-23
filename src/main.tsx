@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { ProtectedRoute, SessionProvider } from './auth';
 import { Landing } from './pages/Landing';
+import { About } from './pages/About';
 import { AuthPage } from './pages/AuthPage';
 import { Dashboard, Overview } from './dashboard/Dashboard';
 import { NotFound, PublicProfile } from './pages/PublicProfile';
@@ -29,6 +30,7 @@ createRoot(document.getElementById('root')!).render(
         >
           <Routes>
             <Route path="/" element={<Landing />} />
+            <Route path="/about" element={<About />} />
             <Route path="/login" element={<AuthPage key="login" mode="login" />} />
             <Route path="/signup" element={<AuthPage key="signup" mode="signup" />} />
             <Route path="/reset-password" element={<AuthPage key="reset" mode="reset" />} />

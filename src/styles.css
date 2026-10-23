@@ -122,6 +122,72 @@ input {
 .button-secondary:hover {
   background: #edf2e9;
 }
+.entry-splash {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  position: relative;
+  padding: 32px;
+  background: #f6f3ec;
+  color: #305b43;
+  animation: entry-fade-in 500ms ease both;
+  transition: opacity 250ms ease;
+}
+.entry-splash-exiting {
+  opacity: 0;
+}
+.entry-content {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 16px;
+  text-align: center;
+}
+.entry-mark {
+  color: #ba793f;
+  font-size: 42px;
+  line-height: 1;
+}
+.entry-content h1 {
+  font-family: 'Lora', serif;
+  font-size: clamp(40px, 8vw, 64px);
+  font-weight: 600;
+  letter-spacing: -2px;
+}
+.entry-content p {
+  font-size: 18px;
+  color: #64715b;
+}
+.entry-hint {
+  margin-top: 18px;
+  font-size: 12px;
+  color: #8a9183;
+}
+.entry-content .button {
+  margin-top: 2px;
+}
+.entry-about {
+  position: absolute;
+  bottom: 25px;
+  color: #8a9183;
+  font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+@keyframes entry-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .entry-splash {
+    animation: none;
+    transition: none;
+  }
+}
 .button-small {
   padding: 12px 19px;
   font-size: 14px;
@@ -436,6 +502,7 @@ input {
 }
 .profile-page {
   min-height: 100svh;
+  position: relative;
   padding: 65px 24px 25px;
   background-size: cover;
   background-position: center;
@@ -544,21 +611,119 @@ input {
   font-size: 12px;
   opacity: 0.75;
 }
-.split .profile-content {
-  max-width: 1050px;
-  display: grid;
-  grid-template-columns: 1fr 1.15fr;
-  gap: 85px;
-  align-items: center;
+.split {
+  overflow: hidden;
+  padding: 0;
+}
+.split-panel {
+  position: relative;
+  z-index: 1;
+  width: var(--split-width);
+  min-height: 100svh;
+  margin-left: auto;
+  padding: 12vh 7vw 35px;
+  background: var(--split-panel);
+  backdrop-filter: blur(var(--split-blur));
+  box-shadow: -18px 0 32px #00000026;
+  clip-path: polygon(8% 0, 100% 0, 100% 100%, 0 100%);
+  display: flex;
+  flex-direction: column;
+  animation: split-panel-enter 300ms ease both;
+}
+.split-panel .profile-content {
+  animation: split-content-enter 300ms ease 80ms both;
+}
+.split-side-left .split-panel {
+  margin-left: 0;
+  margin-right: auto;
+  clip-path: polygon(0 0, 92% 0, 100% 100%, 0 100%);
+  box-shadow: 18px 0 32px #00000026;
+}
+.split-panel .profile-content {
+  max-width: 600px;
+  width: 100%;
+  margin: 0;
+  flex: 1;
+}
+.split-align-center .split-panel {
+  justify-content: center;
+  padding-top: 35px;
 }
 .split .profile-identity {
   text-align: left;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 18px;
+  align-items: center;
 }
 .split .profile-avatar {
-  margin-left: 0;
+  grid-row: span 2;
+  margin: 0;
+}
+.split .profile-identity .eyebrow {
+  grid-column: 2;
+  grid-row: 2;
+}
+.split .profile-identity h1 {
+  grid-column: 2;
+  grid-row: 1;
+  margin: 0;
 }
 .split .bio {
-  margin-left: 0;
+  margin: 25px 0 30px;
+}
+.split .view-count {
+  margin-top: auto;
+  padding-top: 24px;
+}
+.split .profile-content {
+  position: relative;
+}
+.split .view-count {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+}
+.split-align-center .profile-links {
+  text-align: center;
+}
+@keyframes split-panel-enter {
+  from { opacity: 0; transform: translateX(24px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes split-content-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@media (max-width: 767px) {
+  .split {
+    min-height: 100svh;
+    padding-top: 35vh;
+    overflow-x: hidden;
+  }
+  .split .profile-background {
+    position: absolute;
+    height: 35vh;
+    inset: 0 0 auto;
+  }
+  .split-panel,
+  .split-side-left .split-panel {
+    width: 100%;
+    min-height: 65vh;
+    margin: 0;
+    padding: 42px 24px 28px;
+    clip-path: none;
+    box-shadow: 0 -12px 24px #00000026;
+  }
+  .split .profile-identity {
+    text-align: var(--split-content-align, left);
+  }
+  .split-align-center .split-panel {
+    padding-top: 42px;
+  }
+  .split-align-center .profile-identity {
+    text-align: center;
+  }
 }
 .splash {
   align-items: center;
@@ -594,6 +759,114 @@ input {
 }
 .splash a {
   font-size: 12px;
+}
+.profile-splash {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+  animation: splash-enter 350ms ease both;
+}
+.plain-splash {
+  text-shadow: 0 2px 12px #00000066;
+}
+.plain-splash-text {
+  font-weight: 600;
+  cursor: pointer;
+  outline: 0;
+}
+.plain-splash-text:focus-visible {
+  outline: 3px solid currentColor;
+  outline-offset: 8px;
+  border-radius: 4px;
+}
+.plain-size-s,
+.plain-size-compact {
+  font-size: 24px;
+}
+.plain-size-m,
+.plain-size-standard {
+  font-size: 32px;
+}
+.plain-size-l {
+  font-size: 44px;
+}
+.plain-splash-pulse {
+  animation: plain-splash-pulse 4s ease-in-out infinite;
+}
+@keyframes plain-splash-pulse {
+  50% { opacity: 0.78; }
+}
+.profile-splash.is-exiting {
+  animation: splash-exit 250ms ease both;
+}
+.profile-splash .splash-card {
+  width: min(100%, 520px);
+  box-shadow: 0 18px 50px #0000001a;
+}
+.profile-splash.cardless .splash-card {
+  box-shadow: 0 2px 8px #00000040;
+}
+.profile-splash.cardless h1,
+.profile-splash.cardless p,
+.profile-splash.cardless .splash-symbol {
+  text-shadow: 0 1px 3px #00000055;
+}
+.profile-splash.splash-align-left {
+  justify-content: flex-start;
+  text-align: left;
+}
+.profile-splash.splash-size-compact .splash-card {
+  max-width: 390px;
+  padding: 28px;
+}
+.profile-splash .splash-symbol img {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.profile-splash .splash-button {
+  border: 0;
+}
+.profile-splash.splash-enter-scale {
+  animation-name: splash-scale;
+}
+.profile-splash.splash-enter-slide {
+  animation-name: splash-slide;
+}
+.profile-splash.splash-enter-none,
+.profile-splash.splash-exit-none {
+  animation: none;
+}
+@keyframes splash-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes splash-exit {
+  to { opacity: 0; }
+}
+@keyframes splash-scale {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes splash-slide {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .profile-splash,
+  .plain-splash-pulse {
+    animation: none;
+  }
+  .split-panel,
+  .split-panel .profile-content {
+    animation: none;
+  }
 }
 .empty-links {
   text-align: center;

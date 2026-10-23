@@ -19,21 +19,36 @@ const profile = {
   splash_message: 'Take a look around.',
   view_count: 10,
 };
-test('claim, validation and protected routes work at mobile width', async ({ page }) => {
+test('entry splash routes returning visitors and keeps the about page reachable', async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.route('**/rest/v1/rpc/is_username_available', (route) =>
-    route.fulfill({ json: true }),
-  );
+  await page.addInitScript(() => localStorage.setItem('ownspace:returning', '1'));
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: /All your worlds/ })).toBeVisible();
-  await page.screenshot({ path: 'test-results/landing-mobile.png', fullPage: true });
+  await expect(page.getByRole('heading', { name: 'OwnSpace' })).toBeVisible();
+  await expect(page.getByText('All your worlds. One little space.')).toBeVisible();
+  await page.getByRole('button', { name: 'Enter' }).press('Space');
+  await expect(page).toHaveURL(/\/login$/);
+  await page.goto('/about');
+  await expect(page.getByRole('link', { name: 'Log in' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'What is OwnSpace?' })).toHaveCount(0);
+});
+test('new visitors enter signup and reduced motion skips the exit delay', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.removeItem('ownspace:returning');
+    Object.defineProperty(window, 'matchMedia', {
+      value: () => ({ matches: true, addListener: () => {}, removeListener: () => {} }),
+    });
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Enter' }).focus();
+  await page.keyboard.press('Enter');
+  await expect(page).toHaveURL(/\/signup$/);
+});
+test('landing page remains within the viewport at mobile width', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: 'OwnSpace' })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await page.getByRole('textbox', { name: 'Your username' }).fill('alex');
-  await page.getByRole('button', { name: 'Claim your space' }).click();
-  await expect(page.getByLabel('Username', { exact: true })).toHaveValue('alex');
-  await expect(page.getByText('✓ This space can be yours.')).toBeVisible();
-  await page.getByLabel('Username', { exact: true }).fill('login');
-  await expect(page.getByText('This username is reserved.')).toBeVisible();
   await page.goto('/account');
   await expect(page).toHaveURL(/\/login$/);
 });
@@ -118,4 +133,34 @@ test('unknown or private profiles show 404', async ({ page }) => {
   await page.route('**/rest/v1/profiles*', (route) => route.fulfill({ json: null }));
   await page.goto('/missing');
   await expect(page.getByText('404 · SPACE NOT FOUND')).toBeVisible();
+});
+test('plain splash renders only its title and enters from the keyboard', async ({ page }) => {
+  await page.route('**/rest/v1/**', async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    if (path.endsWith('/profiles'))
+      return route.fulfill({
+        json: {
+          ...profile,
+          theme: {
+            splash: {
+              layout: 'plain',
+              title: 'Click into my page',
+              clickAnywhere: true,
+            },
+          },
+        },
+      });
+    if (path.endsWith('/links') || path.endsWith('/socials'))
+      return route.fulfill({ json: [] });
+    if (path.endsWith('/track_view')) return route.fulfill({ json: 11 });
+    return route.fulfill({ json: null });
+  });
+  await page.goto('/alex');
+  const title = page.getByRole('button', { name: 'Enter page' });
+  await expect(title).toHaveText('Click into my page');
+  await expect(page.getByRole('button', { name: 'Enter this space ↗' })).toHaveCount(0);
+  await expect(page.getByText('Back home')).toHaveCount(0);
+  await title.focus();
+  await title.press('Enter');
+  await expect(page.getByRole('heading', { name: 'Alex Morgan' })).toBeVisible();
 });

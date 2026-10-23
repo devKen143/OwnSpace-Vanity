@@ -1,112 +1,81 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type MouseEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { usernameError } from '../lib/profile';
-export function Landing() {
-  const [username, setUsername] = useState('');
-  const [error, setError] = useState('');
-  const navigate = useNavigate();
-  function claim(event: FormEvent) {
-    event.preventDefault();
-    const error = usernameError(username);
-    setError(error);
-    if (!error) navigate(`/signup?username=${encodeURIComponent(username)}`);
+import { useSession } from '../auth';
+
+function readReturningFlag() {
+  try {
+    return window.localStorage.getItem('ownspace:returning') === '1';
+  } catch {
+    return false;
   }
+}
+
+export function shouldRedirectToDashboard(loading: boolean, session: unknown) {
+  return !loading && !!session;
+}
+
+export function Landing() {
+  const { session, loading } = useSession();
+  const navigate = useNavigate();
+  const [exiting, setExiting] = useState(false);
+  const [reducedMotion, setReducedMotion] = useState(false);
+
+  useEffect(() => {
+    document.title = 'OwnSpace — All your worlds. One little space.';
+    const description = 'OwnSpace is a little corner for all your worlds.';
+    let meta = document.querySelector('meta[name="description"]');
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.setAttribute('name', 'description');
+      document.head.appendChild(meta);
+    }
+    meta.setAttribute('content', description);
+    setReducedMotion(window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    return () => {
+      document.title = 'OwnSpace — A little corner of you';
+    };
+  }, []);
+
+  useEffect(() => {
+    if (shouldRedirectToDashboard(loading, session)) navigate('/dashboard', { replace: true });
+  }, [loading, navigate, session]);
+
+  function enter() {
+    if (exiting || loading || session) return;
+    const destination = readReturningFlag() ? '/login' : '/signup';
+    if (reducedMotion) {
+      navigate(destination);
+      return;
+    }
+    setExiting(true);
+    window.setTimeout(() => navigate(destination), 250);
+  }
+
+  function handleClick(event: MouseEvent<HTMLElement>) {
+    const target = event.target as HTMLElement;
+    if (!target.closest('a, button')) enter();
+  }
+
+  if (loading || session) {
+    return <main className="entry-splash" aria-busy="true" />;
+  }
+
   return (
-    <div className="landing">
-      <header className="site-header">
-        <Link className="brand" to="/">
-          ✳ OwnSpace
-        </Link>
-        <nav aria-label="Main navigation">
-          <Link to="/login">Log in</Link>
-          <Link className="button button-small" to="/signup">
-            Find your space ↗
-          </Link>
-        </nav>
-      </header>
-      <main className="hero">
-        <section className="hero-copy">
-          <span className="eyebrow">
-            <span className="dot" /> A PLACE TO BE YOURSELF
-          </span>
-          <h1>
-            All your worlds.
-            <br />
-            One little <em>space.</em>
-          </h1>
-          <p>
-            Your work, your passions, your next big thing.
-            <br className="desktop-break" /> Bring them together in a page that feels like you.
-          </p>
-          <form className="claim" onSubmit={claim}>
-            <label htmlFor="claim-name">ownspace /</label>
-            <input
-              id="claim-name"
-              aria-label="Your username"
-              placeholder="yourname"
-              autoComplete="username"
-              value={username}
-              maxLength={20}
-              onChange={(e) => setUsername(e.target.value.toLowerCase())}
-              required
-            />
-            <button className="button">Claim your space ↗</button>
-          </form>
-          {error && (
-            <p role="alert" className="error">
-              {error}
-            </p>
-          )}
-          <span className="hero-note">A home for your links. Room for your personality.</span>
-        </section>
-        <section className="preview-scene" aria-label="Example OwnSpace profile">
-          <div className="orbit orbit-one" />
-          <div className="orbit orbit-two" />
-          <span className="floating-note">a little more you ↘</span>
-          <article className="preview-card">
-            <div className="preview-top">
-              <span>ownspace / alex</span>
-              <span>↗</span>
-            </div>
-            <div className="sample-avatar">
-              a<span>✳</span>
-            </div>
-            <h2>Alex Morgan</h2>
-            <p>
-              Making things & finding the good.
-              <br />
-              Designer, daydreamer, coffee person.
-            </p>
-            <div className="sample-link featured">
-              <span>✦ My latest work</span>
-              <span>↗</span>
-            </div>
-            <div className="sample-link">
-              <span>◈ The things I make</span>
-              <span>↗</span>
-            </div>
-            <div className="sample-link">
-              <span>☕ A little about me</span>
-              <span>↗</span>
-            </div>
-            <div className="sample-socials">
-              Instagram <span>·</span> YouTube <span>·</span> Email
-            </div>
-            <span className="sample-footer">MADE OF MANY THINGS.</span>
-          </article>
-          <span className="floating-star">✳</span>
-          <span className="scene-label">YOUR LINKS. YOUR LOOK. YOUR SPACE.</span>
-        </section>
-      </main>
-      <footer className="landing-footer">
-        <span>Small page. Endless possibilities.</span>
-        <div>
-          <span>01 &nbsp; Make it yours</span>
-          <span>02 &nbsp; Share your world</span>
-          <span>03 &nbsp; Grow together</span>
-        </div>
-        <span>✳</span>
-      </footer>
-    </div>
+    <main className={`entry-splash ${exiting ? 'entry-splash-exiting' : ''}`} onClick={handleClick}>
+      <div className="entry-content">
+        <span className="entry-mark" aria-hidden="true">
+          ✳
+        </span>
+        <h1>OwnSpace</h1>
+        <p>All your worlds. One little space.</p>
+        <span className="entry-hint">Click anywhere to enter</span>
+        <button className="button" onClick={enter}>
+          Enter
+        </button>
+      </div>
+      <Link className="entry-about" to="/about">
+        What is OwnSpace?
+      </Link>
+    </main>
   );
 }
